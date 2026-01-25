@@ -29,19 +29,20 @@ function HomePage() {
       <Navbar onReset={handleReset} />
 
       {/* Search Form - Separate from navbar */}
-      <div className="max-w-7xl mx-auto px-4 mt-6 mb-8 relative" style={{
-        transform: 'translate3d(0, 0, 0)',
-        zIndex: 1000
+      <div className="sticky top-[72px] sm:top-[88px] z-[1000] py-2 bg-gradient-to-b from-[var(--bg-color)] via-[var(--bg-color)]/95 to-transparent backdrop-blur-md transition-all duration-300" style={{
+        willChange: 'transform, opacity'
       }}>
-        <SearchForm
-          onSearch={handleSearch}
-          onClear={handleReset}
-          isLoading={loading}
-          initialQuery={query}
-          currentSource=""
-          checkedSources={completedSources}
-          totalSources={totalSources}
-        />
+        <div className="max-w-7xl mx-auto px-4">
+          <SearchForm
+            onSearch={handleSearch}
+            onClear={handleReset}
+            isLoading={loading}
+            initialQuery={query}
+            currentSource=""
+            checkedSources={completedSources}
+            totalSources={totalSources}
+          />
+        </div>
       </div>
 
       {/* Main Content */}

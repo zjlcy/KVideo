@@ -18,7 +18,13 @@ export function useHomePage() {
     const [currentSortBy, setCurrentSortBy] = useState<SortOption>('default');
 
     const onUrlUpdate = useCallback((q: string) => {
-        router.replace(`/?q=${encodeURIComponent(q)}`, { scroll: false });
+        const params = new URLSearchParams(window.location.search);
+        if (q) {
+            params.set('q', q);
+        } else {
+            params.delete('q');
+        }
+        router.replace(`/?${params.toString()}`, { scroll: false });
     }, [router]);
 
     // Search stream hook

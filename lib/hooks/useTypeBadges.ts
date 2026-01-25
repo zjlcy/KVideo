@@ -1,6 +1,5 @@
-'use client';
-
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { TypeBadge } from '@/lib/types';
 
 /**
@@ -12,9 +11,56 @@ import type { TypeBadge } from '@/lib/types';
  * - Updates dynamically as videos are added/removed
  * - Removes badges when count reaches 0
  * - Supports filtering by selected types
+ * - Persists state in URL
  */
 export function useTypeBadges<T extends { type_name?: string }>(videos: T[]) {
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isInitialMount = useRef(true);
+
+  // Initialize from URL
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(() => {
+    const typesParam = searchParams.get('types');
+    if (typesParam) {
+      return new Set(typesParam.split(',').filter(Boolean));
+    }
+    return new Set();
+  });
+
+  // Sync state to URL
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    const currentParams = new URLSearchParams(searchParams.toString());
+    const typesParam = Array.from(selectedTypes).join(',');
+
+    if (typesParam) {
+      currentParams.set('types', typesParam);
+    } else {
+      currentParams.delete('types');
+    }
+
+    const newUrl = `${pathname}?${currentParams.toString()}`;
+    router.replace(newUrl, { scroll: false });
+  }, [selectedTypes, pathname, router, searchParams]);
+
+  // Handle URL changes (e.g., when clicking browser back/forward)
+  useEffect(() => {
+    const typesParam = searchParams.get('types');
+    const urlTypes = new Set(typesParam ? typesParam.split(',').filter(Boolean) : []);
+
+    const currentTypesArr = Array.from(selectedTypes);
+    const urlTypesArr = Array.from(urlTypes);
+
+    if (currentTypesArr.length !== urlTypesArr.length ||
+      !currentTypesArr.every(t => urlTypes.has(t))) {
+      setSelectedTypes(urlTypes);
+    }
+  }, [searchParams]);
 
   // Collect and count type badges from videos
   const typeBadges = useMemo<TypeBadge[]>(() => {
@@ -46,7 +92,7 @@ export function useTypeBadges<T extends { type_name?: string }>(videos: T[]) {
 
   // Toggle type selection - useCallback to prevent re-creation
   const toggleType = useCallback((type: string) => {
-    // Update selected types immediately (high priority)
+    // Update selected types immediately
     setSelectedTypes(prev => {
       const newSet = new Set(prev);
       if (newSet.has(type)) {
@@ -60,6 +106,7 @@ export function useTypeBadges<T extends { type_name?: string }>(videos: T[]) {
 
   // Auto-cleanup: remove selected types that no longer exist in badges
   useEffect(() => {
+    if (typeBadges.length === 0) return;
     const availableTypes = new Set(typeBadges.map(b => b.type));
 
     setSelectedTypes(prev => {
